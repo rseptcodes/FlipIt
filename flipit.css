@@ -1,18 +1,23 @@
 :root {
 	--pm-color: #fbfcfc;
-	--sc-color: #ebeff0;
+	--sc-color: #f7bd4a;
+	--sc-darkcolor: rgb(164,101,21);
 	--red-color: #fa4b4f;
+	--red-darkcolor: rgb(164,21,64);
 	--green-color: #4af77d;
+	--green-darkcolor: rgb(21,164,101);
 	--input-outline: #79838b;
 	--txt-color: #000000;
 	--header-line: #000000;
 }
-
 [data-theme="dark"] {
 	--pm-color: #121212;
-	--sc-color: #1e1e1e;
-	--red-color: #ff5c5f;
-	--green-color: #5cf78d;
+  --sc-color: #c9952f;
+  --sc-darkcolor: rgb(130,76,20);
+  --red-color: #d93a3f;
+  --red-darkcolor: rgb(120,30,34);
+  --green-color: #38c965;
+  --green-darkcolor: rgb(28,110,56);
 	--input-outline: #444444;
 	--txt-color: #fbfcfc;
 	--header-line: #333333;
@@ -48,6 +53,7 @@ body{
 	border-radius: 100%;
 	height: 33px;
 	aspect-ratio: 1;
+	z-index: 10; /* temporario */
 	color: var(--txt-color);
 }
 .headerButton:active{
@@ -55,30 +61,135 @@ body{
 }
 .flashCardsDiv{
 	width: 95dvw;
+	position: relative;
 	left: 50%;
-	transform: translateX(-50%);
 	display: flex;
 	flex-direction: column;
+	transform: translateX(-50%);
+	flex-direction: column;
 	justify-content: center;
-	align-items: center;
 	min-height: 80dvh;
 }
-.flashCard{
-	width: 90dvw;
-	min-height: 2dvh;
-	max-height: 7dvh;
-	padding: 8px 10px;
-	border-radius: 14px;
-	background-color: var(--sc-color);
-	color: var(--txt-color);
-	transition: all 1s ease-in-out;
+.flashCard {
+    width: 92dvw;
+    padding: 15px;
+    display: flex;
+    position: relative;
+    z-index: 2;
+    flex-direction: column;
+    gap: 1dvh;
+    border-radius: 20px;
+    background-color: var(--sc-color);
+    color: var(--txt-color);
+    transition: all 0.4s ease-in-out;
+    box-sizing: border-box;
+    margin: 10px auto;
 }
-.flashCard--reply{
-	//estilizacao da resposta
+.flashCard--success{
+	background-color: var(--green-color);
 }
-.flashCard--question{
-	//estilizacao da pergunta
+.flashCard--error{
+	background-color: var(--red-color);
 }
+.flashCard--focus{
+	transform: translateX(-25%);
+}
+.flashCard--slideOut{
+	animation: slideOut 0.8s cubic-bezier(0.5, 0.5, 0.5, 1) forwards;
+}
+@keyframes slideOut {
+	from {
+  transform: translateX(-25%);
+	opacity: 1;
+	max-height: 500px;
+	} to {
+		transform: translateX(-200%);
+  	opacity: 0;
+		max-height: 0;
+		padding: 0;
+		margin: 0;
+	}
+}
+.questionDiv, .replyDiv {
+    width: 100%;
+    max-width: 80%;
+    min-height: 5dvh;
+    max-height: 8dvh;
+    height: auto;
+    display: flex;
+    padding: 12px 15px;
+    border-radius: 20px;
+    text-indent: 0.2rem;
+    background-color: rgba(164,101,21,0.3);
+    color: white;
+    box-sizing: border-box;
+    word-wrap: break-word;
+    transform: scale(0.90) translateX(-5%);
+    overflow-y: auto;
+    overflow-wrap: break-word;
+    transition: all 0.7s;
+}
+.flashCard--success .questionDiv,
+.flashCard--success .replyDiv{
+	background-color: rgba(21,164,101,0.3);
+}
+.flashCard--error .questionDiv,
+.flashCard--error .replyDiv {
+	background-color: rgba(164,21,64,0.3);
+}
+.replyDiv--focus {
+	  max-width: 100%;
+    transform: scale(1) translateX(0);
+    opacity: 1;
+    align-self: center;
+    border-radius: 14px;
+    max-height: 20dvh;
+    background-color: var(--sc-darkcolor);
+}
+.questionDiv--focus{
+	max-width: 100%;
+  border-radius: 14px;
+  transform: scale(1) translateX(0);
+  opacity: 1;
+  max-height: 15dvh;
+  align-self: center;
+  background-color: var(--sc-darkcolor);
+}
+.flashCard--success .questionDiv--focus,
+.flashCard--success .replyDiv--focus{
+	background-color: var(--green-darkcolor);
+}
+.flashCard--error .questionDiv--focus,
+.flashCard--error .replyDiv--focus {
+	background-color: var(--red-darkcolor);
+}
+.deleteButton {
+    all: unset;
+    position: absolute;
+    width: 50px;
+    aspect-ratio: 1;
+    top: 50%;
+    right: 0; 
+    transform: translate(+25%, -50%);
+    opacity: 0;
+    z-index: -1; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 100%;
+    border: 2px solid var(--red-color);
+    color: var(--red-color);
+    background-color: var(--pm-color);
+    transition: all 0.4s ease-in-out;
+    pointer-events: none;
+}
+
+.flashCard--focus .deleteButton {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(60px, -50%); 
+}
+
 .creationButton{
 	all: unset;
 	display:flex;
@@ -86,17 +197,39 @@ body{
 	justify-content: center;
 	align-items: center;
 	background-color: var(--sc-color);
-	border-radius: 100%;
-	height: 40px;
-	aspect-ratio: 1;
+	border-radius: 20px;
+	height: 45px;
+	aspect-ratio: 1.5;
 	left: 50%;
 	transform: translateX(-50%) scale(1);
 	bottom: 2%;
-	transition: all 1s ease-in-out;
+	transition: all 0.5s ease-in-out;
 	color: var(--txt-color);
 }
+@keyframes hideCreationButton {
+	0% {
+		opacity: 1;
+		transform: translateX(-50%) scale(1);
+	} 50% {
+		opacity: 0.8;
+		color: var(--sc-color);
+		border: 1px solid var(--sc-color);
+		background-color: var(--pm-color);
+		transform: translateX(-50%) scale(1);
+	} 100% {
+		opacity: 0;
+		color: var(--sc-color);
+		border: 1px solid var(--sc-color);
+		background-color: var(--pm-color);
+		transform: translateX(-50%) scale(0.8);
+	}
+}
 .creationButton--hidden{
-	opacity: 0;
+	animation: hideCreationButton 0.8s ease-in-out forwards;
+	pointer-events: none;
+}
+.creationButton--fadeIn{
+	animation: hideCreationButton 0.8s ease-in-out forwards reverse;
 }
 .creationButton:active{
 	transform: translateX(-50%) scale(0.9);
@@ -107,11 +240,11 @@ body{
 	position: fixed;
 	align-items: center;
 	justify-content: center;
-	gap: 3dvh;
+	gap: 2dvh;
 	z-index: 2;
-	border-radius: 14px;
+	border-radius: 20px;
 	width: 80dvw;
-	min-height: 21dvh;
+	min-height: 19dvh;
 	left: 50%;
 	transform: translateX(-50%);
 	background-color: var(--sc-color);
@@ -127,22 +260,33 @@ body{
 }
 
 .editInput {
-  width: 100%;
-  border: 1px solid var(--input-outline);
-  background-color: var(--pm-color);
-  color: var(--txt-color);
+  width: 90%;
+  align-self: flex-start;
+  border: none;
+  background-color: rgba(164,101,21,0.3);
+  color: white;
   padding: 13px 0;
-  text-indent: 8px;
-  border-radius: 12px;
+  text-indent: 12px;
+  border-radius: 18px;
   outline: none;
   font-size: 14px;
+  transition: width 0.4s ease-in-out, background-color 0.3s ease-in-out;
 }
-
+.editInput:focus{
+	width: 100%;
+	border-radius: 14px;
+	background-color: rgb(164,101,21);
+}
+.editInput::placeholder{
+	color: white;
+	opacity: 0.8;
+	text-indent: 12px;
+}
 .inputLabel {
   position: absolute;
   top: 50%;
   left: 8px;
-  color: var(--txt-color);
+  color: white;
   transform: translateY(-50%);
   pointer-events: none;
   transition: all 0.2s ease;
@@ -150,6 +294,105 @@ body{
 
 .inputWrapper.active .inputLabel {
   top: 0;
+  color: black;
   transform: translateY(-100%);
   font-size: 12px;
+}
+.doneButton{
+	display: flex;
+	position: absolute;
+	left: 50%;
+	transform: translateX(-50%);
+	top: -25%;
+	background-color: var(--sc-color);
+	align-items: center;
+	justify-content: center;
+	width: 45px;
+	aspect-ratio: 1.5;
+	border-radius: 20px;
+	border: none;
+	cursor: pointer;
+	opacity: 1;
+	font-size: 1rem;
+	transition: all 0.7s ease, opacity 0.3s ease;
+}
+
+
+/* teste */
+.flashCardButton {
+	display: flex;
+	position: absolute;
+	right: 4%;
+	margin-top: 2px;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+	border-radius: 14px;
+	border: none;
+	cursor: pointer;
+	opacity: 1;
+	font-size: 1.2rem;
+	transition: all 0.7s ease, opacity 0.3s ease;
+}
+.flashCardButton + .flashCardButton {
+	right: calc(4% + 44px);
+}
+.flashCardButton--hidden + .flashCardButton--hidden{
+	transform: translateX(100%);
+}
+.flashCardButton--hidden {
+	opacity: 0;
+	transform: translateX(50%);
+	pointer-events: none;
+	border-radius: 100%;
+}
+
+.flashCardButton:hover {
+	transform: scale(1.05);
+}
+
+ 
+.fadeIn {
+	animation: fadeIn 0.8s ease-in-out forwards;
+}
+@keyframes fadeIn {
+	0% {
+		opacity: 0;
+		transform: translateY(10%);
+	} 50% {
+		opacity: 1;
+		transform: translateY(-5%);
+	} 100% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+.fadeOut {
+	animation: fadeOut 0.4s ease-in-out forwards;
+}
+
+@keyframes fadeOut {
+	0% {
+		opacity: 1;
+		transform: translateY(0);
+	}
+	100% {
+		opacity: 0;
+		transform: translateY(-10%);
+	}
+}
+
+@keyframes fadeOutMenu {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -20px) scale(0.95);
+    }
+}
+.fadeOut--menu {
+	animation: fadeOutMenu 0.3s ease-in-out forwards;
 }
