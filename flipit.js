@@ -4,8 +4,8 @@ const appConfig = {
 	theme: "white",
 	moldura: document.getElementById("moldura"),
 	init(){
-		header.criar();
-		creationButton.criar();
+		header.create();
+		creationButton.create();
 		flashCards.init();
 		handleGestures.verificarDeslizamento(this.moldura, handleGestures.onSwipe);
 	},
@@ -16,22 +16,22 @@ const header = {
 	title: null,
 	themeButton: null,
 	filterButton: null,
-	criar(){
+	create(){
 		if (this.header !== null) return;
 		this.header = helperFunctions.createElement("div",appConfig.moldura, "headerDiv");
 		this.title = helperFunctions.createElement("h1",this.header, "titulo");
 		this.title.innerText = "Flip It!";
-		this.themeButton = this.criarHeaderButton("fa-solid fa-circle-half-stroke", () => {
+		this.themeButton = this.createHeaderButton("fa-solid fa-circle-half-stroke", () => {
 		const novoTema = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
 		 document.documentElement.setAttribute("data-theme", novoTema);
 		 appConfig.theme = novoTema;
 	});
 
-  	this.filterButton = this.criarHeaderButton( "fa-solid fa-sliders", () => {
-		// filtra
+  	this.filterButton = this.createHeaderButton( "fa-solid fa-sliders", () => {
+		flashCards.manageFilter();
 	 });
 	},
-	criarHeaderButton(iconClass, onClick, extraClass = "") {
+	createHeaderButton(iconClass, onClick, extraClass = "") {
 	const button = helperFunctions.createElement("button", this.header, "headerButton");
 
 	if (extraClass) button.classList.add(extraClass);
@@ -45,25 +45,27 @@ const header = {
 const creationButton = {
 	element: null,
 	isVisible: true,
-	criar(){
+	create(){
 		if(this.element !== null) return;
 		this.element = helperFunctions.createElement("button", appConfig.moldura, "creationButton");
 		this.element.innerHTML = '<span><i class="fa-solid fa-pen"></i></span>';
 		this.element.addEventListener("click", () => {
-			if(editMenu.menu === null)editMenu.criar();
+			if(editMenu.menu === null)editMenu.create();
 		});
 	},
 	atualizar(){
 		this.isVisible ? this.hide() : this.show();
 	},
 	hide(){
-		if(this.element === null) this.criar();
+		if(this.element === null) this.create();
 		this.element.classList.add("creationButton--hidden");
 		this.isVisible = false;
 	},
 	show(){
-		if(this.element === null) this.criar();
+		if(this.element === null) this.create();
 		this.element.classList.remove("creationButton--hidden");
+		void this.element.offsetWidth;
+		helperFunctions.applyTempClass(this.element, "creationButton--fadeIn");
 		this.isVisible = true;
 	},
 };
@@ -74,6 +76,17 @@ delay(ms){
 	return new Promise(resolve =>
 	setTimeout(resolve, ms));
 },
+applyTempClass(element, className, callback){
+	if(!element) return;
+	const onEnd = () => {
+		element.classList.remove(className);
+		element.removeEventListener("animationend", onEnd);
+		if(callback) callback();
+	};
+	element.addEventListener("animationend", onEnd);
+	element.classList.add(className);
+	void element.offsetWidth;
+},
 // versao resumida do document.createElement
 createElement(tipo, local, classe){
 	const nome = document.createElement(tipo);
@@ -81,107 +94,290 @@ createElement(tipo, local, classe){
   local.appendChild(nome);
   return nome;
 },
+detectClicks(element, onSingle, onDouble, delay = 200) {
+    if (!element) return;
+    let clickTimer = null;
+
+    element.addEventListener("click", (e) => {
+     if (clickTimer !== null) {
+     clearTimeout(clickTimer);
+     clickTimer = null;
+     if (onDouble) onDouble(e);
+        } else {
+      clickTimer = setTimeout(() => {
+      clickTimer = null;
+      if (onSingle) onSingle(e);
+            }, delay);
+        }
+    });
+},
+returnRedacted(texto) {
+	return texto.replace(/[a-zA-Z0-9]/g, "x");
+},
 };
 const flashCards = {
 	flashCardsArray: [],
+	STATUS: {
+  SUCCESS: "success",
+  ERROR: "error",
+  },
+  currentFilter: "all",
 	flashCardDiv: null,
 	init(){
 		if(this.flashCardDiv) return;
 		this.flashCardDiv = helperFunctions.createElement("div", appConfig.moldura,"flashCardDiv");
+		flashCards.renderLocalStorage();
 	},
-	criar(){
+	create(){
 		if(editMenu.menu === null) return;
-		let dados = editMenu.salvarDadosEFecharInput();
-   	dados = flashCards.salvarTextoEmArray(dados);
-    	flashCards.renderizar(dados);
+		let data = editMenu.saveDataAndDeleteInput();
+   	data = flashCards.saveData(data);
+    	flashCards.render(data);
 	},
-	renderizar(dados){
+	createFlashCardsUI(pergunta, resposta,id){
+		const background = helperFunctions.createElement("div",this.flashCardDiv, "flashCard");
+		const questionDiv = helperFunctions.createElement("div", background, "questionDiv");
+		const replyDiv = helperFunctions.createElement("div",background, "replyDiv");
+		
+		questionDiv.innerText = pergunta;
+		replyDiv.dataset.side = "reply";
+		this.update(replyDiv, questionDiv, resposta);
+		
+		const buttons = flashCardButtons.init(background);
+		flashCardButtons.hide(buttons.successButton, buttons.errorButton);
+		const deleteButton = this.createDeleteButton(background, id);
+		background.dataset.id = id;
+		helperFunctions.detectClicks( background,() => this.update(replyDiv, questionDiv, resposta, buttons.successButton, buttons.errorButton), () => this.focusFlashcard(background));
+
+		return {background, questionDiv, replyDiv};
+	},
+	render(data){
 		if(this.flashCardDiv === null) return;
-		const pergunta = dados.pergunta;
-		const resposta = dados.resposta;
+		const pergunta = data.pergunta;
+		const resposta = data.resposta;
+		const id = data.id;
 		console.log(this.flashCardsArray);
-		const flashCard = helperFunctions.createElement("div",this.flashCardDiv, "flashCard");
-		this.ladoPergunta(flashCard, pergunta);
-		flashCard.addEventListener("click",() => {
-			this.trocarLado(flashCard, pergunta, resposta);
-		});
+		const {background, questionDiv, replyDiv} = this.createFlashCardsUI(pergunta, resposta, id);
+		
+		helperFunctions.applyTempClass(background, "fadeIn");
+		if(data.status === "success") this.markCorrect(background);
+    if(data.status === "error") this.markIncorrect(background);
 	},
 	gerarId(){
 		if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
     return Date.now().toString(36) + Math.random().toString(36).slice(2,8);
 	},
-	renderizarSalvas(){
-		//fazer dps
+	updateLocalStorage(array){
+		localStorage.setItem("flashCardsArray", JSON.stringify(array));
 	},
-	salvarTextoEmArray(dados){
-		const flashCard = {id:this.gerarId(), pergunta: dados.pergunta, resposta: dados.resposta};
+	renderLocalStorage(){
+		try{
+			const dadosSalvos = localStorage.getItem("flashCardsArray");
+		  this.flashCardsArray = dadosSalvos ? JSON.parse(dadosSalvos) : [];
+		} catch(erro){
+			console.log("Erro ao carregar ao localStorage");
+			this.flashCardsArray = [];
+		}
+		this.flashCardsArray.forEach((item, index) => {
+			this.render(item, index);
+		});
+	},
+	saveData(data){
+		const flashCard = {id:this.gerarId(), pergunta: data.pergunta, resposta: data.resposta, status: null};
 		this.flashCardsArray.push(flashCard);
+		this.updateLocalStorage(this.flashCardsArray);
 		return flashCard;
 	},
-	trocarLado(element, pergunta, resposta){
-		if(element.dataset.side === "reply"){
-			this.ladoPergunta(element, pergunta);
+	editFlashcards(pergunta, resposta, id){
+		
+	},
+	createDeleteButton(background, id){
+		const deleteButton = helperFunctions.createElement("button", background, "deleteButton");
+			deleteButton.addEventListener("click",(e) => {
+  	e.stopPropagation();
+  	this.deleteFlashCard(background, id);
+		});
+		deleteButton.innerHTML = '<span class="fa-solid fa-trash-can"></span>';
+    return deleteButton;
+	},
+	async deleteFlashCard(container, id){
+		this.flashCardsArray = this.flashCardsArray.filter(n => n.id !== id);
+		this.updateLocalStorage(this.flashCardsArray);
+	  helperFunctions.applyTempClass(container, "flashCard--slideOut", container.remove.bind(container));
+		
+	},
+	update(replyElement, questionElement, resposta, successElement, errorElement){
+		if(replyElement.dataset.side === "reply"){
+			this.hideReply(replyElement, resposta, successElement, errorElement);
+			replyElement.classList.remove("replyDiv--focus");
+			questionElement.classList.add("questionDiv--focus");
 		} else {
-			this.ladoResposta(element, resposta);
+			this.showReply(replyElement, resposta, successElement, errorElement);
+			replyElement.classList.add("replyDiv--focus");
+			questionElement.classList.remove("questionDiv--focus");
 		}
 	},
-	ladoPergunta(element, pergunta){
-		element.innerText = pergunta;
-		element.classList.add("flashCard--question");
-		element.classList.remove("flashCard--reply");
-		element.dataset.side = "question";
+	markCorrect(container){
+	const id = container.dataset.id;
+	const card = this.flashCardsArray.find(c => c.id === id);
+	if(!card) return;
+	if(card.status === "error") return;
+	card.status = "success";
+	container.classList.add("flashCard--success");
+	container.dataset.status = "success";
+	this.updateLocalStorage(this.flashCardsArray);
+},
+	markIncorrect(container){
+	const id = container.dataset.id;
+	const card = this.flashCardsArray.find(c => c.id === id);
+	if(!card) return;
+	if(card.status === "correct") return;
+	card.status = "error";
+	container.classList.add("flashCard--error");
+	container.dataset.status = "error";
+	this.updateLocalStorage(this.flashCardsArray);
+},
+	hideReply(replyElement, resposta, successElement, errorElement){
+		const redactedReply = helperFunctions.returnRedacted(resposta);
+		replyElement.innerText = redactedReply;
+		replyElement.dataset.side = "question";
+		flashCardButtons.hide(successElement, errorElement);
 	},
-	ladoResposta(element, resposta){
-		element.innerText = resposta;
-		element.classList.add("flashCard--reply");
-		element.classList.remove("flashCard--question");
-		element.dataset.side = "reply";
+	showReply(replyElement,resposta, successElement, errorElement){
+		replyElement.innerText = resposta;
+		
+		const container = replyElement.closest(".flashCard");
+		if(!container.dataset.status) flashCardButtons.show(successElement, errorElement);
+		
+		replyElement.dataset.side = "reply";
 	},
+	async focusFlashcard(container){
+		if(!container) return;
+		if(container.classList.contains("flashCard--focus")){
+			container.classList.remove("flashCard--focus")
+			void container.offsetWidth;
+			return;
+		}
+		  void container.offsetWidth;
+			container.classList.add("flashCard--focus");
+	},
+		applyFilter(filter){
+		if (filter !== "all" && !Object.values(this.STATUS).includes(filter)) return;
+		const cards = document.querySelectorAll(".flashCard");
+    this.currentFilter = filter;
+    cards.forEach(card => {
+
+  if (card.dataset.status !== filter && filter !== "all") {
+    card.classList.add("flashCard--slideOut");
+    return;
+  }
+
+  const wasHidden = card.classList.contains("flashCard--slideOut");
+
+  card.classList.remove("flashCard--slideOut");
+
+  if (wasHidden) {
+    helperFunctions.applyTempClass(card, "fadeIn");
+  }
+});
+	},
+	manageFilter(){
+		const filters = ["all", this.STATUS.SUCCESS, this.STATUS.ERROR];
+		const index = filters.indexOf(this.currentFilter);
+		const nextIndex = ( index + 1 ) % filters.length;
+		const nextFilter = filters[nextIndex]
+		this.applyFilter(nextFilter);
+	},
+};
+const flashCardButtons = {
+	init(container, id){
+		const successButton = this.create(container);
+		successButton.addEventListener("click",() => {
+			flashCards.markCorrect(container);
+		});
+		
+		const errorButton = this.create(container);
+		errorButton.addEventListener("click",() => {
+			flashCards.markIncorrect(container);
+			
+		});
+		successButton.innerHTML = '<span class="fa-solid fa-check"></span>';
+    errorButton.innerHTML = '<span class="fa-solid fa-xmark"></span>';
+    
+    const buttons = { successButton, errorButton };
+    return buttons;
+	},
+	
+	create(container){
+		const button = helperFunctions.createElement("button",container, "flashCardButton");
+		return button;
+	},
+	
+	show(successElement, errorElement){
+		successElement?.classList.remove("flashCardButton--hidden");
+		errorElement?.classList.remove("flashCardButton--hidden");
+	},
+	hide(successElement, errorElement){
+		successElement?.classList.add("flashCardButton--hidden");
+		errorElement?.classList.add("flashCardButton--hidden");
+	}
 };
 const editMenu = {
   menu: null,
   questionInput: null,
   replyInput: null,
   
-  criar() {
+  create() {
   	if (this.menu !== null) return;
     this.menu = helperFunctions.createElement("div",appConfig.moldura,"editMenu");
     this.isVisible = true;
+    creationButton.hide();
+    this.questionInput = this.createInput("Qual a pergunta?");
+    this.replyInput = this.createInput("Qual a resposta?");
+    const doneButton = helperFunctions.createElement("button", this.menu, "doneButton");
+     doneButton.innerHTML = '<span><i class="fa-solid fa-check"></i></span>';
 
-    this.questionInput = this.criarInput("Qual a pergunta?");
-    this.replyInput = this.criarInput("Qual a resposta?");
+    doneButton.addEventListener("click",() => {
+    	flashCards.create();
+    });
   },
-  criarInput(texto) {
+  createInput(texto) {
     const wrapper = helperFunctions.createElement("div",this.menu, "inputWrapper");
 
     const input = helperFunctions.createElement("input", wrapper,"editInput");
+    input.placeholder = texto;
+    
+    // esta comentado porque eu estava testando em ambiente mobile
+    
+    //const label = helperFunctions.createElement("label",wrapper,"inputLabel");
 
-    const label = helperFunctions.createElement("label",wrapper,"inputLabel");
-
-    label.innerText = texto;
+    //label.innerText = texto;
 
     // estado visual
-    input.addEventListener("focus", () => {
-      wrapper.classList.add("active");
-    });
+    //input.addEventListener("focus", () => {
+      //wrapper.classList.add("active");
+    //});
 
-    input.addEventListener("blur", () => {
-      if (!input.value) {
-        wrapper.classList.remove("active");
-      }
-    });
+    //input.addEventListener("blur", () => {
+      //if (!input.value) {
+       // wrapper.classList.remove("active");
+     // }
+    //});
 
     return input;
   },
-  salvarDadosEFecharInput(){
-  	const pergunta = this.questionInput.value;
-  	const resposta = this.replyInput.value;
-  	const dados = { pergunta: pergunta, resposta: resposta };
+  saveDataAndDeleteInput(){
+  	const pergunta = this.questionInput.value || "Por que o ceu tem pão?";
+    const resposta = this.replyInput.value || "nao sei";
+    
+  	const data = { pergunta: pergunta, resposta: resposta };
   	this.deletarMenu();
-  	return dados;
+  	creationButton.show();
+  	return data;
   },
   deletarMenu(){
-  	this.menu?.remove();
+  	helperFunctions.applyTempClass(this.menu, "fadeOut--menu", this.menu.remove.bind(this.menu));
+   
   	this.menu = null;
   },
 };
@@ -215,7 +411,7 @@ const handleGestures = {
 	},
 	onSwipe(direcao, diff){
 		if (direcao === "up")	{
-				flashCards.criar();
+				flashCards.create();
 			}
 	},
 };
