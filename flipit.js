@@ -87,12 +87,45 @@ applyTempClass(element, className, callback){
 	element.classList.add(className);
 	void element.offsetWidth;
 },
+setOverlay(callback){
+	if(document.querySelector(".overlay")) return;
+	const overlay = this.createElement("div", appConfig.moldura, "overlay");
+	overlay.addEventListener("click", (e) => {
+		e.stopPropagation();
+		callback?.();
+		overlay.remove();
+	});
+},
+removeOverlay(){
+	document.querySelector(".overlay")?.remove();
+},
+enableInlineEditing(element, callback) {
+    if (!element) return;
+
+    element.contentEditable = true;
+    
+    element.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            element.blur();
+        }
+    }, { once: true });
+},
 // versao resumida do document.createElement
 createElement(tipo, local, classe){
 	const nome = document.createElement(tipo);
 	nome.classList.add(classe);
   local.appendChild(nome);
   return nome;
+},
+createInfoText(texto){
+	const infoDiv = this.createElement("div", appConfig.moldura, "infoText");
+	infoDiv.innerText = texto;
+	this.applyTempClass(infoDiv, "fadeIn", () => {
+		this.applyTempClass(infoDiv, "fadeOut", () => {
+			infoDiv?.remove();
+		});
+	});
 },
 detectClicks(element, onSingle, onDouble, delay = 200) {
     if (!element) return;
@@ -111,6 +144,30 @@ detectClicks(element, onSingle, onDouble, delay = 200) {
         }
     });
 },
+detectLongpress(element, className, callback) {
+    let holdTimer;
+    let isLongPress = false;
+
+    element.addEventListener("touchstart", (e) => {
+        isLongPress = false;
+        
+        holdTimer = setTimeout(() => {
+            isLongPress = true;
+            element.classList.add(className);
+        }, 1000);
+    });
+
+    element.addEventListener("touchend", () => {
+        clearTimeout(holdTimer);
+        if(isLongPress) callback?.();
+        element.classList.remove(className);
+    }); 
+
+    element.addEventListener("touchmove", () => {
+        clearTimeout(holdTimer);
+    });
+},
+
 returnRedacted(texto) {
 	return texto.replace(/[a-zA-Z0-9]/g, "x");
 },
@@ -148,6 +205,7 @@ const flashCards = {
 		const deleteButton = this.createDeleteButton(background, id);
 		background.dataset.id = id;
 		helperFunctions.detectClicks( background,() => this.update(replyDiv, questionDiv, resposta, buttons.successButton, buttons.errorButton), () => this.focusFlashcard(background));
+		helperFunctions.detectLongpress( background,"flashCard--holding", () => this.enterEditMode(background));
 
 		return {background, questionDiv, replyDiv};
 	},
@@ -175,7 +233,8 @@ const flashCards = {
 			const dadosSalvos = localStorage.getItem("flashCardsArray");
 		  this.flashCardsArray = dadosSalvos ? JSON.parse(dadosSalvos) : [];
 		} catch(erro){
-			console.log("Erro ao carregar ao localStorage");
+			// console.log("Erro ao carregar ao localStorage");
+			helperFunctions.createInfoText("erro ao carregar o localStorage")
 			this.flashCardsArray = [];
 		}
 		this.flashCardsArray.forEach((item, index) => {
@@ -188,8 +247,39 @@ const flashCards = {
 		this.updateLocalStorage(this.flashCardsArray);
 		return flashCard;
 	},
-	editFlashcards(pergunta, resposta, id){
+	enterEditMode(background){
+		const id = background.dataset.id;
+		const data = this.flashCardsArray.find(c => c.id === id);
 		
+		background.classList.add("flashCard--editing");
+		
+		const questionDiv = background.querySelector(".questionDiv");
+			
+		const replyDiv = background.querySelector(".replyDiv");
+		if(data) replyDiv.innerText = data.resposta;
+    
+		const triggerSave = () => this.saveEdit(id, questionDiv.innerText, replyDiv.innerText , background);
+		
+		helperFunctions.enableInlineEditing(questionDiv,(() => triggerSave));
+		
+		helperFunctions.enableInlineEditing(replyDiv, (() => triggerSave));
+		helperFunctions.setOverlay(() => triggerSave());
+		creationButton.hide();
+	},
+	saveEdit(id, novaPergunta, novaResposta, element){
+		const card = this.flashCardsArray.find(c => c.id === id);
+		if(card){
+			card.pergunta = novaPergunta;
+			card.resposta = novaResposta;
+			this.updateLocalStorage(this.flashCardsArray);
+		}
+		const replyDiv = element.querySelector(".replyDiv");
+		if(replyDiv.dataset.side === "question") replyDiv.innerText = helperFunctions.returnRedacted(novaResposta);
+		helperFunctions.removeOverlay();
+		creationButton.show();
+		element.classList.remove("flashCard--editing");
+		element.querySelector(".questionDiv").contentEditable = false;
+		element.querySelector(".replyDiv").contentEditable = false;
 	},
 	createDeleteButton(background, id){
 		const deleteButton = helperFunctions.createElement("button", background, "deleteButton");
@@ -261,7 +351,7 @@ const flashCards = {
 		  void container.offsetWidth;
 			container.classList.add("flashCard--focus");
 	},
-		applyFilter(filter){
+		async applyFilter(filter){
 		if (filter !== "all" && !Object.values(this.STATUS).includes(filter)) return;
 		const cards = document.querySelectorAll(".flashCard");
     this.currentFilter = filter;
@@ -275,7 +365,6 @@ const flashCards = {
   const wasHidden = card.classList.contains("flashCard--slideOut");
 
   card.classList.remove("flashCard--slideOut");
-
   if (wasHidden) {
     helperFunctions.applyTempClass(card, "fadeIn");
   }
@@ -332,11 +421,14 @@ const editMenu = {
     this.menu = helperFunctions.createElement("div",appConfig.moldura,"editMenu");
     this.isVisible = true;
     creationButton.hide();
+    helperFunctions.setOverlay(() => {
+  if (this.menu) this.deletarMenu();
+   });
     this.questionInput = this.createInput("Qual a pergunta?");
     this.replyInput = this.createInput("Qual a resposta?");
     const doneButton = helperFunctions.createElement("button", this.menu, "doneButton");
      doneButton.innerHTML = '<span><i class="fa-solid fa-check"></i></span>';
-
+   
     doneButton.addEventListener("click",() => {
     	flashCards.create();
     });
@@ -372,13 +464,15 @@ const editMenu = {
     
   	const data = { pergunta: pergunta, resposta: resposta };
   	this.deletarMenu();
-  	creationButton.show();
+  	
   	return data;
   },
   deletarMenu(){
   	helperFunctions.applyTempClass(this.menu, "fadeOut--menu", this.menu.remove.bind(this.menu));
    
   	this.menu = null;
+  	helperFunctions.removeOverlay()
+  	creationButton.show();
   },
 };
 //gestos
