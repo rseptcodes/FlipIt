@@ -1,12 +1,13 @@
 
 // configuracoes centrais do app
 const appConfig = {
-	theme: "white",
 	moldura: document.getElementById("moldura"),
 	init(){
+		themeManager.initTheme();
 		header.create();
 		creationButton.create();
 		flashCards.init();
+		tutorialManager.init();
 		handleGestures.verificarDeslizamento(this.moldura, handleGestures.onSwipe);
 	},
 };
@@ -22,9 +23,8 @@ const header = {
 		this.title = helperFunctions.createElement("h1",this.header, "titulo");
 		this.title.innerText = "Flip It!";
 		this.themeButton = this.createHeaderButton("fa-solid fa-circle-half-stroke", () => {
-		const novoTema = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
-		 document.documentElement.setAttribute("data-theme", novoTema);
-		 appConfig.theme = novoTema;
+			const newTheme = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+		themeManager.setTheme(newTheme);
 	});
 
   	this.filterButton = this.createHeaderButton( "fa-solid fa-sliders", () => {
@@ -40,7 +40,17 @@ const header = {
 	button.addEventListener("click", onClick);
 
 	return button;
-}
+},
+};
+const themeManager = {
+initTheme(){
+	const loadTheme = localStorage.getItem("theme") || "white";
+	this.setTheme(loadTheme);
+},
+	setTheme(newTheme){
+	document.documentElement.setAttribute("data-theme", newTheme);
+		 localStorage.setItem("theme", newTheme);
+},
 };
 const creationButton = {
 	element: null,
@@ -233,8 +243,8 @@ const flashCards = {
 			const dadosSalvos = localStorage.getItem("flashCardsArray");
 		  this.flashCardsArray = dadosSalvos ? JSON.parse(dadosSalvos) : [];
 		} catch(erro){
-			// console.log("Erro ao carregar ao localStorage");
-			helperFunctions.createInfoText("erro ao carregar o localStorage")
+      console.error("Erro ao carregar ao localStorage");
+			helperFunctions.createInfoText("erro")
 			this.flashCardsArray = [];
 		}
 		this.flashCardsArray.forEach((item, index) => {
@@ -375,6 +385,7 @@ const flashCards = {
 		const index = filters.indexOf(this.currentFilter);
 		const nextIndex = ( index + 1 ) % filters.length;
 		const nextFilter = filters[nextIndex]
+		helperFunctions.createInfoText(nextFilter);
 		this.applyFilter(nextFilter);
 	},
 };
@@ -421,6 +432,7 @@ const editMenu = {
     this.menu = helperFunctions.createElement("div",appConfig.moldura,"editMenu");
     this.isVisible = true;
     creationButton.hide();
+    tutorialManager.swipeUpTip();
     helperFunctions.setOverlay(() => {
   if (this.menu) this.deletarMenu();
    });
@@ -507,6 +519,42 @@ const handleGestures = {
 		if (direcao === "up")	{
 				flashCards.create();
 			}
+	},
+};
+//tutoriais
+const tutorialManager = {
+	tutorials: {
+		flashCardsTutorial: "inProgress",
+		swipeUpToCreate: "inProgress",
+	},
+	init(){
+		this.getTutorialsStatus();
+		this.flashCardsTutorial();
+	},
+	getTutorialsStatus(){
+		try{
+		  const salvo = localStorage.getItem("tutorialStatus");
+		  if(salvo) this.tutorials = JSON.parse(salvo);
+		}catch(erro){
+			console.error("erro ao carregar o localStorage");
+			helperFunctions.createInfoText("erro");
+		}
+	},
+	setTutorialStatus(){
+		localStorage.setItem("tutorialStatus", JSON.stringify(this.tutorials));
+	},
+	flashCardsTutorial(){
+		if (this.tutorials.flashCardsTutorial === "completed") return;
+		const data = {pergunta: "Clique uma vez para revelar a resposta, clique duas vezes para apagar.", resposta: "toque e segure para editar"}
+		flashCards.render(data);
+		this.tutorials.flashCardsTutorial = "completed";
+		this.setTutorialStatus();
+	},
+	swipeUpTip(){
+		if (this.tutorials.swipeUpToCreate === "completed") return;
+		helperFunctions.createInfoText("Dica: arraste pra cima para criar o flashcard");
+		this.tutorials.swipeUpToCreate = "completed";
+		this.setTutorialStatus();
 	},
 };
 // inicia
