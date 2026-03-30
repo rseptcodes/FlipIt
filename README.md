@@ -1,61 +1,28 @@
-# 🃏 Flip It! — Minimalist Flashcards
+# 🗂️ Flip It!: Interactive Flashcards App
 
-![Vanilla JS](https://img.shields.io/badge/vanilla_js-100%25-ff69b4)
-![Status](https://img.shields.io/badge/status-🛠️_Day_1_Complete-yellow)
-![Time Spent](https://img.shields.io/badge/time_invested-2_hours-blue)
+![HTML5](https://img.shields.io/badge/html5-%23E34F26.svg?style=for-the-badge&logo=html5&logoColor=white)
+![CSS3](https://img.shields.io/badge/css3-%231572B6.svg?style=for-the-badge&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/javascript-%23323330.svg?style=for-the-badge&logo=javascript&logoColor=%23F7DF1E)
 
-A high-performance, minimalist flashcard app built from scratch. This project is a personal challenge to demonstrate how much can be achieved with pure **Vanilla JavaScript** and clean architecture in a short time frame.
+## 💡 The Story Behind the Project
+I wanted a quick, highly interactive way to study without the clunky interfaces of traditional study apps. I needed a tool that felt natural on a phone, where I could easily flip through questions, mark what I knew, and edit mistakes on the fly. To solve this, I created **Flip It!**—a mobile-first, gesture-driven flashcard application that helps you focus on learning, not navigating menus.
 
----
+## ✨ Features
 
-# 📖 The Sprint Story
+* **Interactive Flashcards:** Tap to flip between questions and redacted answers. 
+* **Progress Tracking:** Instantly mark cards as correct (green) or incorrect (red) to visualize your study progress.
+* **Smart Filtering:** Quickly toggle your view between all cards, mastered cards (success), and cards you need to review (error).
+* **📱 Mobile-First & Intuitive Gestures:** Highly optimized for touch devices.
+  * *Swipe Up* to instantly create a new flashcard.
+  * *Single Tap* to reveal the answer.
+  * *Double Tap* to focus on a card and reveal the delete option.
+  * *Long Press* to enter inline editing mode.
+* **✏️ Inline Editing:** Tap and hold any flashcard to edit the question or answer directly on the card, without being redirected to a new page.
+* **🌗 Dark & Light Themes:** Fully responsive custom UI themes that adapt to your environment and reduce eye strain.
+* **💾 Local Storage:** Your flashcards, study progress (correct/incorrect states), theme preferences, and tutorial status are automatically saved locally in your browser.
 
-This project is divided into two focused sessions. The goal is to move from a blank screen to a fully gesture-driven, persistent web app.
+## 🛠️ Technologies Used
 
-### ⏱️ Sprint Log
-
-| Session | Status | Time Spent | Key Achievements |
-| :--- | :--- | :--- | :--- |
-| **Day 1** | ✅ Done | **2h 18min** | Architecture, DOM Factory, Core CRUD, Basic Swipes |
-| **Day 2** | 📅 Planned | -- | 3D Flip Physics, LocalStorage, UI Polishing |
-
----
-
-# 🛠️ Day 1: The Foundation (Completed)
-
-In the first **2 hours**, the focus was on building a scalable "engine" for the app. 
-
-### What's under the hood?
-* **Modular Object Architecture:** Organized the code into independent modules (`header`, `flashCards`, `editMenu`) to avoid global scope pollution.
-* **Custom DOM Factory:** Built a `helperFunctions` library to handle dynamic element creation efficiently.
-* **Gesture Orchestration:** Implemented initial `touchstart` and `touchend` logic for mobile-first interactions.
-* **Input System:** Developed a clean, floating edit menu with active-state label animations.
-
-
-
----
-
-# 🚀 Day 2: The Horizon (Tomorrow's Goals)
-
-Tomorrow will be dedicated to "Magic and Persistence." The plan is to transform this functional logic into a premium-feel experience.
-
-1.  **3D Flip Physics:** Implementing `preserve-3d` and `rotateY` transitions to make cards feel like physical objects.
-2.  **Data Persistence:** Integrating `localStorage` so your deck survives a page refresh.
-3.  **Visual Feedback:** Adding real-time tracking to gestures (cards following the finger movement).
-4.  **Dark Mode Completion:** Finalizing the theme-switch logic to ensure a comfortable night-study experience.
-
----
-
-# 📂 Current Architecture
-
-The project follows a **Central State Object** pattern, ensuring the UI is a direct reflection of the data:
-
-```javascript
-const appConfig = { /* App Bootstrapping */ };
-const header = { /* UI Components */ };
-const flashCards = { /* Data & Rendering */ };
-const editMenu = { /* Input Handling */ };
-const handleGestures = { /* Interaction Logic */ };
-const helperFunctions = { /* The "Engine" */ };
-```
-"Good code is built session by session." - Day 1 of Flip It! is officially in the books.
+* **Vanilla JavaScript (ES6+):** Utilized for complex state management, custom touch/gesture detection, dynamic DOM rendering, inline editing logic, and Local Storage integration.
+* **CSS3:** Custom CSS variables for dynamic theming, CSS Grid for responsive desktop/tablet layouts, and smooth keyframe animations (`fadeIn`, `slideOut`) for a polished UX.
+* **HTML5:** Semantic structure and layout generation via JavaScript DOM manipulation.
